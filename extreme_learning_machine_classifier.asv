@@ -1,0 +1,70 @@
+
+classdef extreme_learning_machine_classifier
+    %EXTREME_LEARNING_MACHINE_CLASSIFIER Builds a classification extreme
+    %learning machine. 
+    
+    properties
+        Win = [];
+        activation = {};
+        Wout = [];
+        functional = 0;
+    end
+    
+    methods
+        function obj = extreme_learning_machine_classifier(X,Ytrain,C,varargin)
+            %EXTREME_LEARNING_MACHINE_CLASSIFIER Trains an ELM for
+            %classification.
+            % Inputs:
+            %   X - Input data
+            %   y - output data
+            %   hidden - the number of hidden units (default: 10)
+            %   activation - activation function (default: 'sigmoid')
+            %                other values: 'tanh', 'relu', 'rbf', 'linear'
+            %   functional - functional link between input and output
+            %                (default: 0 [false]) other values: 1 [true]
+            % Output:
+            %   obj - Trained ELM object
+            
+            p = inputParser;
+            addRequired(p, 'X', @ismatrix);
+            addRequired(p, 'y', @isvector);
+            addParameter(p, 'hidden', 10, @isnumeric);
+            addParameter(p, 'activation', 'tanh', @(x)any(validatestring(x,{'sigmoid','rbf','tanh','relu'})));
+            addParameter(p, 'functional', 0, @isnumeric);
+            
+            parse(p,1,1,varargin{:});
+            obj.functional = p.Results.functional;
+            
+            switch p.Results.activation
+                case 'sigmoid'
+                    obj.activation = @(x)(1 ./ (1 + exp(-x)));
+                case 'tanh'
+                    obj.activation = @(x)(tanh(x));
+                case 'relu'
+                    obj.activation = @(x)(max(0,x));
+                case 'rbf'
+                    obj.activation = @(x)(radbas(x));
+                case 'linear'
+                    obj.activation = @(x)(x);
+            end
+            
+            hidden = p.Results.hidden;
+            dim=size(X);
+            obj.Win = rand(dim(2),hidden) * 2 - 1;
+            H = obj.activation (X*obj.Win);
+            HTes=H'*H ; %H transposé produit H
+            tail=size(HTes);
+            I = eye(tail)/C;
+            bet=inv(I+HTes);
+            bet1=H'*Ytrain;
+            obj.Wout=bet*bet1;
+            %obj.Wout = pinv(H)*transpose(y);
+        end
+        
+        function y = predict(X)
+            H = obj.activation(X*obj.Win);
+            if obj.functional; H = [H, X]; end
+            y = H* obj.Wout;
+        end
+    end
+end
